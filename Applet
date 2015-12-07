@@ -1,0 +1,74 @@
+//PROGRAMMER: ROMAN BELAIRE
+
+	import java.applet.*;
+	import javax.swing.*;
+	import java.awt.*;
+	import java.awt.event.ActionEvent;
+	import java.awt.event.ActionListener;
+
+@SuppressWarnings({ "serial", "unused" })
+public class Main extends JApplet implements ActionListener 
+{
+	//declare our components or fields 
+	
+	
+	JPanel pnlMain = new JPanel();
+	JPanel pnlInput = new JPanel();
+	JPanel pnlOutput = new JPanel();
+	
+	
+	MapGen generator = new MapGen();
+	
+	public void init()
+	{
+		//this is the first method to run
+		//place our components on the applet
+		DesignInputPanel();
+		DesignOutputPanel();	
+		pnlMain.add(pnlInput);
+		pnlMain.add(pnlOutput);
+		
+		createlevel();
+		//show all content on the applet
+		setContentPane(pnlMain);
+		
+		
+	}
+
+	public void createlevel()
+	{
+		String outputString = null;
+		dungeonRoom[][] level = generator.generateDungeon(30, 50);
+		outputString = generator.levelString(level);
+		System.out.print(outputString);
+	}
+	
+	public void actionPerformed(ActionEvent event)
+	{
+		try{
+		
+		
+		}
+		catch(Throwable String)
+		{
+			throw String;
+		}
+		
+	}
+	
+	
+	public void  DesignInputPanel()
+	{
+		
+		
+	}
+	
+	public void DesignOutputPanel()
+	{	
+		
+	}
+	
+	
+}
+
+

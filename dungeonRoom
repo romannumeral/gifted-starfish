@@ -1,0 +1,10 @@
+
+public class dungeonRoom {
+	//holds data for each individual dungeon room
+	int[] door = new int[4];//doors ordered clockwise from top
+	boolean occupied,endsBranch,nodeActivated,startingRoom,node = false;
+	dungeonRoom()
+	{
+		
+	}
+}

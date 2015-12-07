@@ -1,0 +1,387 @@
+
+public class MapGen {
+	//arrays to keep track of terrain elements
+	/*
+	 * terrain values are as follows:
+	 * 0 = Mountain
+	 * 1-6 is plains, with varying chances for trees
+	 * 7 is forest
+	 */
+	int[][] Terrain = new int[100][100]; 
+	int[] seed;
+	int seedSpacer = 0;
+	MapGen()
+	{
+		//generates the map
+	}
+	
+	public void generateLand()
+	{
+		//procedurally generates land
+		
+		/* 
+		 * steps
+		 * generate first bit of terrain
+		 * affects other spaces based off of distance and strength 
+		 * continue generating
+		 */
+		
+		/*
+		 * seed works by taking the first digit and inputting into the value of the random thing
+		 * finds next empty space and uses second digit, etc.
+		 */		
+		
+	}
+	
+	private int[] getSeed(int digits)
+	{
+		int[] seed = new int[digits];
+		for(int i = 0; i < digits; i++)
+		{
+			seed[i] = (int) (Math.random()*10);
+		}
+		
+		return seed;
+	}
+	
+	public void generateForest(int[] seed)
+	{
+		int seedSpacer = 0;
+		
+		
+		for(int x = 0; x < 100; x++)
+		{
+			for(int y = 0; y < 100; y++)//fills up each column first
+			{
+				if (Terrain[x][y] == 0)
+				{
+					Terrain[x][y] = seed[seedSpacer];
+					
+					
+					//fills up the surrounding area
+					for(int x2 = 0; x2 < 100; x2++)
+					{
+						for(int y2 = 0; y2 < 100; y2++)
+						{
+							int distance = (int) Math.sqrt(Math.pow(x2 - x, 2) + Math.pow(y2 - y, 2));
+							
+							int decay = seed[seedSpacer] - distance;
+							if(decay <= 0)
+								decay = 0;
+							
+							Terrain[x2][y2] += decay;
+							
+						}
+					}
+						
+					seedSpacer++;//moves the spacer up one
+					
+					if(seedSpacer == seed.length)
+						seedSpacer = 0;
+				}
+				
+			}
+			
+		}
+	}
+	
+	public dungeonRoom[][] generateDungeon(int difficulty, int size)
+	{
+		//procedurally creates a dungeon
+		/*
+		 * creates the first room using a seed a value, 
+		 * the value represents how many rooms can branch from that (one value per door)
+		 */
+		final int[] TESTSEED = new int[50];
+		for (int i = 0; i < TESTSEED.length; i++)
+		{
+			TESTSEED[i] = 6;
+		}
+		//seed creation
+		System.out.print("Starting dungeon generation..." + "\n");
+		seed= getSeed(difficulty);
+		String seedString = "Seed: ";
+		seedSpacer = 0;
+		for(int i = 0; i < seed.length; i++)
+		{
+			seedString += seed[i];
+		}
+		System.out.print("Seed Created. " + seedString + "\n");
+		
+		
+		//initializes dungeon
+		int start = size/2;
+		dungeonRoom[][] Room = new dungeonRoom[size][size];
+		
+		for(int a = 0; a < size; a++)
+		{
+			for(int b = 0; b < size; b++)
+			{
+				Room[a][b] = new dungeonRoom();
+			}
+		}
+		System.out.print("Dungeon initialized." + "\n");
+		
+		//starts first room
+		Room[start][start].occupied = true;
+		Room[start][start].endsBranch = true;
+		Room[start][start].nodeActivated = false;//initialize for purposes unknown
+		Room[start][start].startingRoom = true;
+		Room[start][start].node = true;
+		try{
+		for(int i = 0; i < 4; i++)
+		{
+			Room[start][start].door[i] = seed[seedSpacer];
+			seedSpacer++;
+		}
+		System.out.print("Starting Room at: " + start + "," + start + "\n");
+		}catch(ArrayIndexOutOfBoundsException exception)
+		{
+			System.err.print("Failed to create first room, most likely due to short seed");
+		}
+		
+		//fills the rest of the rooms
+		/*
+		 * parses for an empty room that also qualifies as the end of a branch off;
+		 * fills out branches, starts process over
+		 */
+		while(seedSpacer < seed.length)
+		{
+			 
+			//System.out.println(seedSpacer + " " + seed.length);
+			/*
+			 * KNOWN BUGS:
+			 * if this space is empty, it runs the room code once and then loops forever.
+			 * if the space is occupied, this code loops forever without reaching the room code.
+			 * why?
+			 * HAHA FIXED IT
+			 * The .nodeActivated property was null when initialized
+			 * God damnit nevermind that wasn't it.
+			 * so apparently its the occupied property, but I do not know the problem
+			 * FIXED IT FOR REALS
+			 * I don't know what the issue was, but it was caused by me not setting the doors to a number in the second half of activateNode()
+			 * There is still a problem with the .occupied thing though, making the if statement on line 165 critical to the function of the method
+			 * not sure what it is
+			 */
+			System.out.println("Finding nodes..."); 
+			for(int x = 0; x < Room.length; x++)
+			{
+				for(int y = 0; y < Room[x].length; y++)
+				{
+					if(Room[x][y].endsBranch && !Room[x][y].nodeActivated)
+					{
+						Room[x][y].occupied = true;
+					}
+					//anything outside of the if statement below will get stuck and loop forever
+					if(Room[x][y].occupied && Room[x][y].endsBranch && !Room[x][y].nodeActivated)//checks for a room that exists; first iteration will be the original room
+					{
+						System.out.print("Node found at: " + x + "," + y + "\n");
+						Room[x][y].node = true;
+						activateNode(Room, x, y);
+						Room[x][y].nodeActivated = true;
+						System.out.println("Room complete."+"\n");
+					}
+					//stuff in this area loops like a bitch too
+				}
+			}
+		}		
+		System.out.println("Dungeon Complete.");
+		
+		return Room;
+	}
+	
+	private void activateNode(dungeonRoom[][] Room, int x, int y)
+	{
+		//fills doors and floods branches, then creates new nodes at the end of each branch
+		for(int i = 0; i < 4; i++)
+		{
+			try{
+				int Filler = 1;
+				//System.out.print(Room[x][y].door[i] + " " + Filler);
+			while(Filler < Room[x][y].door[i])
+			{
+				//System.out.print("test");
+				//fills up rooms that branch off from the original door
+				switch(i)
+				{
+				
+				case 0://up
+					Room[x][y - Filler].occupied = true;
+					Filler++;
+					break;
+				case 1://right
+					Room[x + Filler][y].occupied = true;
+					Filler++;
+					break;
+				case 2://down
+					Room[x][y + Filler].occupied = true;
+					Filler++;
+					break;
+				case 3://left
+					Room[x - Filler][y].occupied = true;
+					Filler++;
+					break;
+				default: break;
+				}								
+			}
+			System.out.print("Branch created for room " + x + "," + y +
+					" @door: " + i + "\n");
+			
+			if(seedSpacer < seed.length)
+			{
+			System.out.print("Creating new node at end of branch..." + "\n");
+			if(Filler == Room[x][y].door[i] && Filler != 0)
+			{
+				
+				//if its the end of the branch, marks so that a new one can start
+				
+				switch(i)
+				{
+				
+				case 0://up
+					Room[x][y - Filler].endsBranch = true;
+					Room[x][y - Filler].nodeActivated = false;
+					for(int k = 0; k < 4; k++)
+					{
+						if(k != 2 && seedSpacer < seed.length)
+						{
+							Room[x][y - Filler].door[k] = seed[seedSpacer];
+							seedSpacer++;
+						}
+						else
+						{
+							Room[x][y - Filler].door[k] = 0;
+						}
+					}
+					System.out.print("Node created at: " + x + "," + (y - Filler) + "\n");
+					break;
+				case 1://right
+					Room[x + Filler][y].endsBranch = true;
+					Room[x + Filler][y].nodeActivated = false;
+					for(int k = 0; k < 4; k++)
+					{
+						if(k != 3 && seedSpacer < seed.length)
+						{
+							Room[x + Filler][y].door[i] = seed[seedSpacer];
+							seedSpacer++;
+						}
+						else
+						{
+							Room[x + Filler][y].door[i] = 0;
+						}
+					}
+					System.out.print("Node created at: " + (x + Filler) + "," + y + "\n");
+					break;
+				case 2://down
+					Room[x][y + Filler].endsBranch = true;
+					Room[x][y + Filler].nodeActivated = false;
+					for(int k = 0; k < 4; k++)
+					{
+						if(k != 0 && seedSpacer < seed.length)
+						{
+							Room[x][y + Filler].door[i] = seed[seedSpacer];
+							seedSpacer++;
+						}
+						else
+						{
+							Room[x][y + Filler].door[i] = 0;
+						}
+					}
+					System.out.print("Node created at: " + x+ "," + (y + Filler) + "\n");
+					break;
+				case 3://left
+					Room[x - Filler][y].endsBranch = true;
+					Room[x - Filler][y].nodeActivated = false;
+					for(int k = 0; k < 4; k++)
+					{
+						if(k != 1 && seedSpacer < seed.length)
+						{
+							Room[x - Filler][y].door[i] = seed[seedSpacer];
+							seedSpacer++;
+						}
+						else
+						{
+							Room[x - Filler][y].door[i] = 0;
+						}
+					}
+					System.out.print("Node created at: " + (x - Filler) + "," + y + "\n");
+					break;
+				default: 
+					System.err.print("Unknown error occurred.");
+					break;
+				
+					}
+				}
+			else{System.out.println("No node created: no branch");}
+			
+			}
+			else
+			{
+				System.out.println("Ran out of seed space.");
+				break;
+			}
+			System.out.println("Seed spaces used: " + seedSpacer + " of " + seed.length);
+			
+			}catch (ArrayIndexOutOfBoundsException exception)
+			{
+				System.err.println("Index out of bounds: " + exception.getMessage() + "\n" + 
+						"Seed ran out of digits in the middle of the operation." + "\n");
+				break;
+			}
+		}
+		
+	}
+	
+	
+	public String levelString(dungeonRoom[][] level)
+	{
+		String outputString = "";
+		System.out.println("Creating visualization...");
+		for (int x = 0; x < level.length; x++)
+		{
+			for(int y = 0; y < level.length; y++)
+			{
+				
+				if(level[x][y].occupied)
+				{
+					//outputString.concat("1 ");
+					if(level[x][y].startingRoom)
+					{
+						System.out.print("x ");
+					}
+					else if(level[x][y].node && !level[x][y].startingRoom)
+					{
+						System.out.print("N ");
+					}
+					else
+					{
+						System.out.print("1 ");
+					}
+					
+				}
+				else if(level[x][y].occupied == false)
+				{
+					//outputString.concat("0 ");
+					System.out.print("0 ");
+				}
+				if (y == level.length - 1)
+				{
+					//outputString.concat("\n");
+					System.out.print("\n");
+				}
+				
+			}
+			
+		}
+		
+		return outputString;
+		
+	}
+	
+	@SuppressWarnings("unused")
+	private void ping()//used for debugging so I don't have to type the whole print string every time
+	{
+		System.out.print
+		("Ping");
+	}
+}
